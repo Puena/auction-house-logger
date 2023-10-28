@@ -30,6 +30,7 @@ type LoggerEventWrapper struct {
 	logEvent *zerolog.Event
 }
 
+// NOTICE: Should be called only once per event, otherwise unpredictable behavior will be occur.
 func (l LoggerEventWrapper) Msg(msg string) LoggerEventWrapper {
 	l.logEvent.Msg(msg)
 	return l
@@ -42,6 +43,11 @@ func (l LoggerEventWrapper) Str(key string, val string) LoggerEventWrapper {
 
 func (l LoggerEventWrapper) Int(key string, val int) LoggerEventWrapper {
 	l.logEvent.Int(key, val)
+	return l
+}
+
+func (l LoggerEventWrapper) Int64(key string, val int64) LoggerEventWrapper {
+	l.logEvent.Int64(key, val)
 	return l
 }
 
