@@ -30,22 +30,22 @@ type LoggerEventWrapper struct {
 	logEvent *zerolog.Event
 }
 
-func (l *LoggerEventWrapper) Msg(msg string) *LoggerEventWrapper {
+func (l LoggerEventWrapper) Msg(msg string) LoggerEventWrapper {
 	l.logEvent.Msg(msg)
 	return l
 }
 
-func (l *LoggerEventWrapper) Str(key string, val string) *LoggerEventWrapper {
+func (l LoggerEventWrapper) Str(key string, val string) LoggerEventWrapper {
 	l.logEvent.Str(key, val)
 	return l
 }
 
-func (l *LoggerEventWrapper) Int(key string, val int) *LoggerEventWrapper {
+func (l LoggerEventWrapper) Int(key string, val int) LoggerEventWrapper {
 	l.logEvent.Int(key, val)
 	return l
 }
 
-func (l *LoggerEventWrapper) Err(err error) *LoggerEventWrapper {
+func (l LoggerEventWrapper) Err(err error) LoggerEventWrapper {
 	l.logEvent.Err(err)
 	return l
 }
