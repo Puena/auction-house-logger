@@ -2,59 +2,65 @@ package logging
 
 import (
 	"context"
+	"io"
 	"os"
 
 	"github.com/rs/zerolog"
-	globalLog "github.com/rs/zerolog/log"
 )
 
-var Logger = globalLog.Output(os.Stdout)
+type getTracingID func(context.Context) string
 
-type LogWrapper struct {
-	log *zerolog.Logger
+var logger = LoggerWrapper{log: zerolog.New(os.Stderr).With().Timestamp().Logger()}
+
+type LoggerWrapper struct {
+	log zerolog.Logger
 }
 
-type LogWrapperEvent struct {
+func NewLogger(output io.Writer, level Level) error {
+	zLogLevel, err := level.ToZerologLevel()
+	if err != nil {
+		return err
+	}
+
+	logger = LoggerWrapper{log: zerolog.New(output).Level(zLogLevel).With().Timestamp().Logger()}
+	return nil
+}
+
+type LoggerEventWrapper struct {
 	logEvent *zerolog.Event
 }
 
-func (l *LogWrapperEvent) Msg(msg string) *LogWrapperEvent {
+func (l *LoggerEventWrapper) Msg(msg string) *LoggerEventWrapper {
 	l.logEvent.Msg(msg)
 	return l
 }
 
-func (l *LogWrapperEvent) Str(key string, val string) *LogWrapperEvent {
+func (l *LoggerEventWrapper) Str(key string, val string) *LoggerEventWrapper {
 	l.logEvent.Str(key, val)
 	return l
 }
 
-func (l *LogWrapperEvent) Int(key string, val int) *LogWrapperEvent {
+func (l *LoggerEventWrapper) Int(key string, val int) *LoggerEventWrapper {
 	l.logEvent.Int(key, val)
 	return l
 }
 
-func (l *LogWrapperEvent) Err(err error) *LogWrapperEvent {
+func (l *LoggerEventWrapper) Err(err error) *LoggerEventWrapper {
 	l.logEvent.Err(err)
 	return l
 }
 
-func (l *LogWrapper) Info() *LogWrapperEvent {
-	return &LogWrapperEvent{logEvent: l.log.Info()}
+func Info() LoggerEventWrapper {
+	return LoggerEventWrapper{logEvent: logger.log.Info()}
 }
 
-func (l *LogWrapper) Debug() *LogWrapperEvent {
-	return &LogWrapperEvent{logEvent: l.log.Debug()}
+func Debug() LoggerEventWrapper {
+	return LoggerEventWrapper{logEvent: logger.log.Debug()}
 }
 
-func (l *LogWrapper) Error() *LogWrapperEvent {
-	return &LogWrapperEvent{logEvent: l.log.Error()}
+func Error() LoggerEventWrapper {
+	return LoggerEventWrapper{logEvent: logger.log.Error()}
 }
-
-func NewLogWrapper() *LogWrapper {
-	return &LogWrapper{log: &Logger}
-}
-
-type getTracingID func(context.Context) string
 
 type tracingIDHook struct {
 	tracingID getTracingID
