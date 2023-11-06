@@ -9,6 +9,7 @@ import (
 )
 
 type getTracingID func(context.Context) string
+type loggerOption func(logger *LoggerWrapper) error
 
 var logger = LoggerWrapper{log: zerolog.New(os.Stderr).With().Timestamp().Logger()}
 
@@ -16,13 +17,33 @@ type LoggerWrapper struct {
 	log zerolog.Logger
 }
 
-func NewLogger(output io.Writer, level Level) error {
-	zLogLevel, err := level.ToZerologLevel()
-	if err != nil {
-		return err
+func WithOutput(output io.Writer) loggerOption {
+	return func(logger *LoggerWrapper) error {
+		logger.log = logger.log.Output(output)
+		return nil
+	}
+}
+
+func WithLevel(level Level) loggerOption {
+	return func(logger *LoggerWrapper) error {
+		zLogLevel, err := level.ToZerologLevel()
+		if err != nil {
+			return err
+		}
+
+		logger.log = logger.log.Level(zLogLevel)
+		return nil
+	}
+}
+
+func NewLogger(opts ...loggerOption) error {
+
+	for _, option := range opts {
+		if err := option(&logger); err != nil {
+			return err
+		}
 	}
 
-	logger = LoggerWrapper{log: zerolog.New(output).Level(zLogLevel).With().Timestamp().Logger()}
 	return nil
 }
 
@@ -53,6 +74,11 @@ func (l LoggerEventWrapper) Int64(key string, val int64) LoggerEventWrapper {
 
 func (l LoggerEventWrapper) Err(err error) LoggerEventWrapper {
 	l.logEvent.Err(err)
+	return l
+}
+
+func (l LoggerEventWrapper) Any(key string, val any) LoggerEventWrapper {
+	l.logEvent.Any(key, val)
 	return l
 }
 
