@@ -2,8 +2,10 @@ package logging
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/rs/zerolog"
 )
@@ -11,12 +13,13 @@ import (
 type getTracingID func(context.Context) string
 type loggerOption func(logger *LoggerWrapper) error
 
-var logger = LoggerWrapper{log: zerolog.New(os.Stderr).With().Timestamp().Logger()}
+var logger LoggerWrapper = LoggerWrapper{log: zerolog.New(os.Stderr).With().Timestamp().Logger()}
 
 type LoggerWrapper struct {
 	log zerolog.Logger
 }
 
+// WithOutput set output for logger.
 func WithOutput(output io.Writer) loggerOption {
 	return func(logger *LoggerWrapper) error {
 		logger.log = logger.log.Output(output)
@@ -24,6 +27,7 @@ func WithOutput(output io.Writer) loggerOption {
 	}
 }
 
+// WithLevel set level for logger.
 func WithLevel(level Level) loggerOption {
 	return func(logger *LoggerWrapper) error {
 		zLogLevel, err := level.ToZerologLevel()
@@ -36,15 +40,18 @@ func WithLevel(level Level) loggerOption {
 	}
 }
 
-func NewLogger(opts ...loggerOption) error {
+// SetUpLogger set up logger, can be and should be called only once.
+func SetUpLogger(opts ...loggerOption) (err error) {
 
-	for _, option := range opts {
-		if err := option(&logger); err != nil {
-			return err
+	sync.OnceFunc(func() {
+		for _, option := range opts {
+			if oErr := option(&logger); oErr != nil {
+				err = errors.Join(err, oErr)
+			}
 		}
-	}
+	})()
 
-	return nil
+	return err
 }
 
 type LoggerEventWrapper struct {
@@ -92,6 +99,10 @@ func Debug() LoggerEventWrapper {
 
 func Error() LoggerEventWrapper {
 	return LoggerEventWrapper{logEvent: logger.log.Error()}
+}
+
+func Fatal() LoggerEventWrapper {
+	return LoggerEventWrapper{logEvent: logger.log.Fatal()}
 }
 
 type tracingIDHook struct {
